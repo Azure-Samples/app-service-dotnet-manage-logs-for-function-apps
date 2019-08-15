@@ -4,17 +4,17 @@ languages:
 - csharp
 products:
 - azure
-services: App-Service
-platforms: dotnet
-author: yaohaizh
+extensions:
+- services: App-Service
+- platforms: dotnet
 ---
 
 # Getting started on log streaming for Functions using C# #
 
-          Azure App Service basic sample for managing function apps.
-           - Create a function app under the same new app service plan:
-             - Deploy to app using FTP
-             - stream logs for 30 seconds
+ Azure App Service basic sample for managing function apps.
+  - Create a function app under the same new app service plan:
+    - Deploy to app using FTP
+    - stream logs for 30 seconds
 
 
 ## Running this Sample ##
