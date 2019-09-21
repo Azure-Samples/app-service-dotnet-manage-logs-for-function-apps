@@ -7,6 +7,7 @@ products:
 extensions:
 - services: App-Service
 - platforms: dotnet
+description: "Azure App Service basic sample for managing function apps."
 ---
 
 # Getting started on log streaming for Functions using C# #
