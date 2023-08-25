@@ -49,7 +49,7 @@ using Microsoft.Azure.Management.Eventhub.Fluent;
 using Microsoft.Azure.Management.Monitor.Fluent;
 using Microsoft.Azure.Management.PrivateDns.Fluent;
 
-namespace Microsoft.Azure.Management.Samples.Common
+namespace Azure.ResourceManager.Samples.Common
 {
     public static class Utilities
     {
@@ -311,24 +311,42 @@ namespace Microsoft.Azure.Management.Samples.Common
             Utilities.Log(info.ToString());
         }
 
-        public static void Print(ITopicAuthorizationRule topicAuthorizationRule)
+        public static void Print(ArmResource resource)
         {
             StringBuilder builder = new StringBuilder()
-                    .Append("Service bus topic authorization rule: ").Append(topicAuthorizationRule.Id)
-                    .Append("\n\tName: ").Append(topicAuthorizationRule.Name)
-                    .Append("\n\tResourceGroupName: ").Append(topicAuthorizationRule.ResourceGroupName)
-                    .Append("\n\tNamespace Name: ").Append(topicAuthorizationRule.NamespaceName)
-                    .Append("\n\tTopic Name: ").Append(topicAuthorizationRule.TopicName);
-
-            var rights = topicAuthorizationRule.Rights;
-            builder.Append("\n\tNumber of access rights in queue: ").Append(rights.Count);
-            foreach (var right in rights)
-            {
-                builder.Append("\n\t\tAccessRight: ")
-                        .Append("\n\t\t\tName :").Append(right.ToString());
-            }
+                    .Append("Service bus topic authorization rule: ").Append(resource.Id)
+                    .Append("\n\tName: ").Append(resource.Id.Name)
+                    .Append("\n\tResourceGroupName: ").Append(resource.Id.ResourceGroupName)
+                    .Append("\n\tNamespace Name: ").Append(resource.Id.ResourceType.Namespace);
 
             Log(builder.ToString());
+        }
+
+        public static string PostAddress(string url, string body, IDictionary<string, string> headers = null)
+        {
+            if (!IsRunningMocked)
+            {
+                try
+                {
+                    using (var client = new HttpClient())
+                    {
+                        if (headers != null)
+                        {
+                            foreach (var header in headers)
+                            {
+                                client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                            }
+                        }
+                        return client.PostAsync(url, new StringContent(body)).Result.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Utilities.Log(ex);
+                }
+            }
+
+            return "[Running in PlaybackMode]";
         }
 
         public static void Print(IDiagnosticSetting resource)
@@ -2821,36 +2839,12 @@ namespace Microsoft.Azure.Management.Samples.Common
             }
         }
 
-        public static void UploadFileToWebApp(IPublishingProfile profile, string filePath, string fileName = null)
+        public static void UploadFileToWebApp(Stream profile, string filePath, string fileName = null)
         {
             if (!IsRunningMocked)
             {
-                string host = profile.FtpUrl.Split(new char[] { '/' }, 2)[0];
-
-                using (var ftpClient = new FtpClient(new FtpClientConfiguration
-                {
-                    Host = host,
-                    Username = profile.FtpUsername,
-                    Password = profile.FtpPassword
-                }))
                 {
                     var fileinfo = new FileInfo(filePath);
-                    ftpClient.LoginAsync().GetAwaiter().GetResult();
-                    if (!ftpClient.ListDirectoriesAsync().GetAwaiter().GetResult().Any(fni => fni.Name == "site"))
-                    {
-                        ftpClient.CreateDirectoryAsync("site").GetAwaiter().GetResult();
-                    }
-                    ftpClient.ChangeWorkingDirectoryAsync("./site").GetAwaiter().GetResult();
-                    if (!ftpClient.ListDirectoriesAsync().GetAwaiter().GetResult().Any(fni => fni.Name == "wwwroot"))
-                    {
-                        ftpClient.CreateDirectoryAsync("wwwroot").GetAwaiter().GetResult();
-                    }
-                    ftpClient.ChangeWorkingDirectoryAsync("./wwwroot").GetAwaiter().GetResult();
-                    if (!ftpClient.ListDirectoriesAsync().GetAwaiter().GetResult().Any(fni => fni.Name == "webapps"))
-                    {
-                        ftpClient.CreateDirectoryAsync("webapps").GetAwaiter().GetResult();
-                    }
-                    ftpClient.ChangeWorkingDirectoryAsync("./webapps").GetAwaiter().GetResult();
 
                     if (fileName == null)
                     {
@@ -2860,12 +2854,10 @@ namespace Microsoft.Azure.Management.Samples.Common
                     {
                         int slash = fileName.IndexOf("/");
                         string subDir = fileName.Substring(0, slash);
-                        ftpClient.CreateDirectoryAsync(subDir).GetAwaiter().GetResult();
-                        ftpClient.ChangeWorkingDirectoryAsync("./" + subDir);
                         fileName = fileName.Substring(slash + 1);
                     }
 
-                    using (var writeStream = ftpClient.OpenFileWriteStreamAsync(fileName).GetAwaiter().GetResult())
+                    using (var writeStream = profile)
                     {
                         var fileReadStream = fileinfo.OpenRead();
                         fileReadStream.CopyToAsync(writeStream).GetAwaiter().GetResult();
@@ -2873,31 +2865,11 @@ namespace Microsoft.Azure.Management.Samples.Common
                 }
             }
         }
-        public static void UploadFileToFunctionApp(IPublishingProfile profile, string filePath, string fileName = null)
+        public static void UploadFileToFunctionApp(Stream profile, string filePath, string fileName = null)
         {
             if (!IsRunningMocked)
             {
-                string host = profile.FtpUrl.Split(new char[] { '/' }, 2)[0];
-
-                using (var ftpClient = new FtpClient(new FtpClientConfiguration
-                {
-                    Host = host,
-                    Username = profile.FtpUsername,
-                    Password = profile.FtpPassword
-                }))
-                {
                     var fileinfo = new FileInfo(filePath);
-                    ftpClient.LoginAsync().GetAwaiter().GetResult();
-                    if (!ftpClient.ListDirectoriesAsync().GetAwaiter().GetResult().Any(fni => fni.Name == "site"))
-                    {
-                        ftpClient.CreateDirectoryAsync("site").GetAwaiter().GetResult();
-                    }
-                    ftpClient.ChangeWorkingDirectoryAsync("./site").GetAwaiter().GetResult();
-                    if (!ftpClient.ListDirectoriesAsync().GetAwaiter().GetResult().Any(fni => fni.Name == "wwwroot"))
-                    {
-                        ftpClient.CreateDirectoryAsync("wwwroot").GetAwaiter().GetResult();
-                    }
-                    ftpClient.ChangeWorkingDirectoryAsync("./wwwroot").GetAwaiter().GetResult();
 
                     if (fileName == null)
                     {
@@ -2907,12 +2879,10 @@ namespace Microsoft.Azure.Management.Samples.Common
                     {
                         int slash = fileName.IndexOf("/");
                         string subDir = fileName.Substring(0, slash);
-                        ftpClient.CreateDirectoryAsync(subDir).GetAwaiter().GetResult();
-                        ftpClient.ChangeWorkingDirectoryAsync("./" + subDir);
                         fileName = fileName.Substring(slash + 1);
                     }
 
-                    using (var writeStream = ftpClient.OpenFileWriteStreamAsync(fileName).GetAwaiter().GetResult())
+                    using (var writeStream = profile)
                     {
                         var fileReadStream = fileinfo.OpenRead();
                         fileReadStream.CopyToAsync(writeStream).GetAwaiter().GetResult();
